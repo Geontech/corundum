@@ -7,10 +7,8 @@ FPGA_ARCH = zynquplus
 # Files for synthesis
 #SYN_FILES = rtl/fpga.v
 SYN_FILES = rtl/10g_to_1g_files/fpga.v
-
 #SYN_FILES += rtl/fpga_core.v
 SYN_FILES += rtl/10g_to_1g_files/fpga_core.v
-
 SYN_FILES += rtl/debounce_switch.v
 SYN_FILES += rtl/common/mqnic_core_axi.v
 SYN_FILES += rtl/common/mqnic_core.v
@@ -47,8 +45,7 @@ SYN_FILES += rtl/common/rx_checksum.v
 SYN_FILES += rtl/common/rb_drp.v
 
 #SYN_FILES += rtl/common/eth_xcvr_phy_10g_gty_wrapper.v
-#SYN_FILES += rtl/10g_to_1g_files/eth_xcvr_phy_1g_wrapper.v
-SYN_FILES += rtl/common/eth_xcvr_phy_1g_wrapper.v
+SYN_FILES += rtl/10g_to_1g_files/eth_xcvr_phy_1g_wrapper.v
 
 #SYN_FILES += rtl/common/eth_xcvr_phy_10g_gty_quad_wrapper.v
 
@@ -69,11 +66,9 @@ SYN_FILES += lib/eth/rtl/eth_mac_1g.v
 #SYN_FILES += lib/eth/rtl/axis_xgmii_rx_64.v
 #SYN_FILES += lib/eth/rtl/axis_xgmii_rx_64.v
 SYN_FILES += lib/eth/rtl/axis_gmii_tx.v
-SYN_FILES += lib/eth/rtl/axis_gmii_rx.v
+SYN_FILES += lib/eth/rtl/axis_gmii_tx.v
 
 #SYN_FILES += lib/eth/rtl/eth_phy_10g.v
-#SYN_FILES += rtl/10g_to_1g_files/gig_ethernet_pcs_pma_0.v
-
 #SYN_FILES += lib/eth/rtl/eth_phy_10g_rx.v
 #SYN_FILES += lib/eth/rtl/eth_phy_10g_rx_if.v
 #SYN_FILES += lib/eth/rtl/eth_phy_10g_rx_frame_sync.v
@@ -123,6 +118,9 @@ SYN_FILES += lib/pcie/rtl/dma_psdpram.v
 SYN_FILES += lib/pcie/rtl/dma_client_axis_sink.v
 SYN_FILES += lib/pcie/rtl/dma_client_axis_source.v
 
+# gig_ethernet
+SYN_FILES += rtl/10g_to_1g_files/gig_ethernet_pcs_pma_0.xci
+
 # XDC files
 XDC_FILES = fpga.xdc
 XDC_FILES += lib/axis/syn/vivado/axis_async_fifo.tcl
@@ -136,7 +134,7 @@ XDC_FILES += ../../../common/syn/vivado/tdma_ber_ch.tcl
 
 # IP
 IP_TCL_FILES = ip/zynq_ps.tcl
-IP_TCL_FILES += ip/gig_ethernet_pcs_pma.tcl
+IP_TCL_FILES += ip/eth_xcvr_gth.tcl
 
 # Configuration
 CONFIG_TCL_FILES = ./config.tcl
