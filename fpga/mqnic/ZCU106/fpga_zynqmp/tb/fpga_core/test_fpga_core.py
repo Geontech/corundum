@@ -439,7 +439,7 @@ def test_fpga_core(request):
     parameters = {}
 
     # Structural configuration
-    parameters['IF_COUNT'] = 2
+    parameters['IF_COUNT'] = 1
     parameters['PORTS_PER_IF'] = 1
     parameters['SCHED_PER_IF'] = parameters['PORTS_PER_IF']
     parameters['PORT_MASK'] = 0

@@ -54,8 +54,10 @@ module eth_xcvr_phy_1g_wrapper #
     parameter GT_RX_LPM_EN     = 1'b0,
     parameter GT_RX_POLARITY   = 1'b0,
 
-    // PHY parameters
-    parameter DATA_WIDTH       = 8
+    // Data Width
+    parameter DATA_WIDTH         = 64,
+    parameter PCS_PMA_DATA_WIDTH = 8
+
 )
 (
     input  wire                   xcvr_ctrl_clk,
@@ -120,11 +122,53 @@ module eth_xcvr_phy_1g_wrapper #
 );
 
 // wire
-/wire txoutclk;
-/wire rxoutclk;
-wire gt_tx_reset_done;
-wire gt_rx_reset_done;
+wire txoutclk;
+wire rxoutclk;
+//wire gt_tx_reset_done;
+//wire gt_rx_reset_done;
 wire gt_rx_pma_reset_done;
+
+///////////////////////////////////////
+//TX
+///////////////////////////////////////
+
+// pcs_pma to dwc
+wire gmii_txd_dwc;
+wire gmii_tx_en_dwc;
+wire gmii_tx_er_dwc;
+
+// dwc to fifo
+wire w_axis_tx_tdata;
+wire w_axis_tx_tvalid;
+wire w_axis_tx_tlast;
+wire w_axis_tx_tready;
+
+// fifo to phy_gmii
+wire phy_gmii_txd_fifo;
+wire phy_gmii_tx_en_fifo;
+wire phy_gmii_tx_er_fifo;
+
+///////////////////////////////////////
+//RX
+///////////////////////////////////////
+
+// pcs_pma to dwc
+wire gmii_rxd_dwc;
+wire gmii_rx_dv_dwc;
+wire gmii_rx_er_dwc;
+
+// dwc to fifo
+wire w_axis_rx_tdata;
+wire w_axis_rx_tvalid;
+wire w_axis_rx_tlast;
+wire w_axis_rx_tready;
+
+// fifo to phy_gmii
+wire phy_gmii_rxd_fifo;
+wire phy_gmii_rx_dv_fifo;
+wire phy_gmii_rx_er_fifo;
+
+///////////////////////////////////////
 
 // reg
 reg [4:0] gt_txdiffctrl_reg     = GT_TX_DIFFCTRL;
@@ -144,53 +188,132 @@ reg gt_tx_pma_reset_reg         = 1'b0;
 reg gt_tx_pcs_reset_reg         = 1'b0;
 reg gt_rx_pma_reset_reg         = 1'b0;
 reg gt_rx_pcs_reset_reg         = 1'b0;
-reg gt_rx_reset_done_reg        = 1'b0;
-reg gt_tx_reset_done_reg        = 1'b0;
-
-reg reg0 = 1'b0;
-reg [1:0] reg2 = 2'b00;
-reg [2:0] reg3 = 3'b000;
-reg [3:0] reg4 = 4'b0000;
-reg [15:0] reg16 = 16'b0000000000000000;
-
+//reg gt_rx_reset_done_reg        = 1'b0;
+//reg gt_tx_reset_done_reg        = 1'b0;
 wire rst_int;
+wire rst_int_sync;
+wire tx_rst_int_sync;
+wire rx_rst_int_sync;
 
-
-/////////////////////////////////
-//
-//always @(posedge txoutclk) begin
-//    gt_tx_reset_done_reg <= gt_tx_reset_done;
-//    //gt_userclk_tx_active_reg <= gt_userclk_tx_active;
-//end
-//
-//always @(posedge rxoutclk) begin
-//    gt_rx_reset_done_reg <= gt_rx_reset_done;
-//    //gt_userclk_rx_active_reg <= gt_userclk_rx_active;
-//end
-//
-/////////////////////////////////
-
-assign phy_tx_clk = txoutclk;
-
+////////////////////////////////////////////////////////////
 sync_reset #(
     .N(4)
 )
 tx_reset_sync_inst (
-    .clk(phy_tx_clk),
+    .clk(txoutclk),
     .rst(!rst_int),
-    .out(phy_tx_rst)
+    .out(tx_rst_int_sync)
 );
 
-assign phy_rx_clk = rxoutclk;
 
 sync_reset #(
     .N(4)
 )
 rx_reset_sync_inst (
-    .clk(phy_rx_clk),
+    .clk(rxoutclk),
     .rst(!rst_int),
-    .out(phy_rx_rst)
+    .out(rst_int_sync)
 );
+
+////////////////////////////////////////////////////////////
+//TX
+////////////////////////////////////////////////////////////
+
+// Data-Width-Converter
+axis_dwidth_converter_0 #(
+    C_S_AXIS_TDATA_WIDTH(DATA_WIDTH),         // 64
+    C_M_AXIS_TDATA_WIDTH(PCS_PMA_DATA_WIDTH)  // 8
+)
+axis_dwidth_converter_tx_inst(
+    .aclk(txoutclk),
+    .aresetn(tx_rst_int_sync),
+
+    .m_axis_tdata(gmii_txd_dwc),
+    .m_axis_tvalid(gmii_tx_en_dwc),
+    .m_axis_tlast(gmii_tx_er_dwc),
+    .m_axis_tready(),
+
+    .s_axis_tdata(w_axis_tx_tdata),
+    .s_axis_tvalid(w_axis_tx_tvalid),
+    .s_axis_tlast(w_axis_tx_tlast),
+    .s_axis_tready(w_axis_tx_tready)
+);
+
+// FIFO
+axis_data_fifo_0 #(
+    C_AXIS_TDATA_WIDTH(DATA_WIDTH)
+)
+axis_data_fifo_tx_inst(
+    .s_axis_aclk(txoutclk),
+    .s_axis_aresetn(tx_rst_int_sync),
+
+    .m_axis_tdata(w_axis_tx_tdata),
+    .m_axis_tvalid(w_axis_tx_tvalid),
+    .m_axis_tlast(w_axis_tx_tlast),
+    .m_axis_tready(w_axis_tx_tready),
+
+    .s_axis_tdata(phy_gmii_txd_fifo),
+    .s_axis_tvalid(phy_gmii_tx_en_fifo),
+    .s_axis_tlast(phy_gmii_tx_er_fifo),
+    .s_axis_tready(),
+);
+
+assign phy_tx_clk = txoutclk;
+assign tx_rst_int_sync = phy_tx_rst;
+assign phy_gmii_txd_fifo = phy_gmii_txd;
+assign phy_gmii_tx_en_fifo = phy_gmii_tx_en;
+assign phy_gmii_tx_er_fifo = phy_gmii_tx_er;
+
+////////////////////////////////////////////////////////////
+//RX
+////////////////////////////////////////////////////////////
+
+// Data-Width-Converter
+axis_dwidth_converter_0 #(
+    C_S_AXIS_TDATA_WIDTH(PCS_PMA_DATA_WIDTH), // 8
+    C_M_AXIS_TDATA_WIDTH(DATA_WIDTH)          // 64
+)
+axis_dwidth_converter_rx_inst(
+    .aclk(rxoutclk),
+    .aresetn(rx_rst_int_sync),
+
+    .m_axis_tdata(gmii_rxd_dwc),
+    .m_axis_tvalid(gmii_rx_dv_dwc),
+    .m_axis_tlast(gmii_rx_er_dwc),
+    .m_axis_tready(),
+
+    .s_axis_tdata(w_axis_rx_tdata),
+    .s_axis_tvalid(w_axis_rx_tvalid),
+    .s_axis_tlast(w_axis_rx_tlast),
+    .s_axis_tready(w_axis_rx_tready)
+);
+
+// FIFO
+axis_data_fifo_0 #(
+    C_AXIS_TDATA_WIDTH(DATA_WIDTH) // 64
+)
+axis_data_fifo_rx_inst(
+    .s_axis_aclk(rxoutclk),
+    .s_axis_aresetn(rx_rst_int_sync),
+
+    .m_axis_tdata(w_axis_rx_tdata),
+    .m_axis_tvalid(w_axis_rx_tvalid),
+    .m_axis_tlast(w_axis_rx_tlast),
+    .m_axis_tready(w_axis_rx_tready),
+
+    .s_axis_tdata(phy_gmii_rxd_fifo),
+    .s_axis_tvalid(phy_gmii_rx_dv_fifo),
+    .s_axis_tlast(phy_gmii_rx_er_fifo),
+    .s_axis_tready(),
+);
+
+assign phy_rx_clk = rxoutclk;
+assign rx_rst_int_sync = phy_rx_rst;
+assign phy_gmii_rxd_fifo = phy_gmii_rxd;
+assign phy_gmii_rx_dv_fifo = phy_gmii_rx_dv;
+assign phy_gmii_rx_er_fifo = phy_gmii_rx_er;
+
+////////////////////////////////////////////////////////////
 
 gig_ethernet_pcs_pma_0 eth_pcspma (
 
@@ -207,27 +330,28 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     .mmcm_reset               (),
     .txoutclk                 (txoutclk),
     .rxoutclk                 (rxoutclk),
-    .userclk                  (reg0),
-    .userclk2                 (reg0),
-    .rxuserclk                (reg0),
-    .rxuserclk2               (reg0),
-    .independent_clock_bufg   (reg0),
-    .pma_reset                (reg0),
-    .mmcm_locked              (reg0),
+    .userclk                  (),
+    .userclk2                 (),
+    .rxuserclk                (),
+    .rxuserclk2               (),
+    .independent_clock_bufg   (),
+    .pma_reset                (),
+    .mmcm_locked              (),
 
     // GMII Interface
     //---------------
-    .gmii_txd                 (phy_gmii_txd),
-    .gmii_tx_en               (phy_gmii_tx_en),
-    .gmii_tx_er               (phy_gmii_tx_er),
-    .gmii_rxd                 (phy_gmii_rxd),
-    .gmii_rx_dv               (phy_gmii_rx_dv),
-    .gmii_rx_er               (phy_gmii_rx_er),
+    .gmii_txd                 (gmii_txd_dwc),
+    .gmii_tx_en               (gmii_tx_en_dwc),
+    .gmii_tx_er               (gmii_tx_er_dwc),
+
+    .gmii_rxd                 (gmii_rxd_dwc),
+    .gmii_rx_dv               (gmii_rx_dv_dwc),
+    .gmii_rx_er               (gmii_rx_er_dwc),
     .gmii_isolate             (),                // Doesn't exist on eth_mac_1g.v
 
     // Management: Alternative to MDIO Interface
     //------------------------------------------
-    .configuration_vector     (reg4),
+    .configuration_vector     (),
 
     // General IO's
     //-------------
@@ -250,34 +374,36 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     .gt_rxdfelpmreset         (gt_rx_dfe_lpm_reset_reg),
     .gt_rxlpmen               (gt_rxlpmen_reg),
     .gt_txprbssel             (gt_txprbssel_sync_reg),
-    .gt_txprbsforceerr        (reg0),
-    .gt_rxprbscntreset        (reg0),
+    .gt_txprbsforceerr        (),
+    .gt_rxprbscntreset        (),
     .gt_rxprbserr             (),
     .gt_rxprbssel             (gt_rxprbssel_sync_reg),
     .gt_loopback              (gt_loopback_reg),
-    .gt_txresetdone           (gt_tx_reset_done),
-    .gt_rxresetdone           (gt_rx_reset_done),
+    //.gt_txresetdone           (gt_tx_reset_done),
+    //.gt_rxresetdone           (gt_rx_reset_done),
+    .gt_txresetdone           (),
+    .gt_rxresetdone           (),
     .gt_rxdisperr             (),
     .gt_rxnotintable          (),
     .gt_eyescanreset          (gt_eyescan_reset_reg),
     .gt_eyescandataerror      (),
-    .gt_eyescantrigger        (reg0),
+    .gt_eyescantrigger        (),
     .gt_rxcdrhold             (gt_rxcdrhold_reg),
     .gt_txpmareset            (gt_tx_pma_reset_reg),
     .gt_txpcsreset            (gt_tx_pcs_reset_reg),
     .gt_rxpmareset            (gt_rx_pma_reset_reg),
     .gt_rxpcsreset            (gt_rx_pcs_reset_reg),
-    .gt_rxbufreset            (reg0),
+    .gt_rxbufreset            (),
     .gt_rxpmaresetdone        (gt_rx_pma_reset_done),
     .gt_rxbufstatus           (),
     .gt_txbufstatus           (),
-    .gt_rxrate                (reg3),
-    .gt_cpllrefclksel         (reg3),
-    .gt_gtrefclk1             (),
-    .gt_pcsrsvdin             (reg16),
+    .gt_rxrate                (),
+    .gt_cpllrefclksel         (),
+    .gt_gtrefclk1             (xcvr_gtrefclk01_in),
+    .gt_pcsrsvdin             (),
     .gt_dmonitorout           (),
     .gtpowergood              (xcvr_gtpowergood_out),
-    .signal_detect            (reg0)
+    .signal_detect            ()
 );
 
 endmodule

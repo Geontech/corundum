@@ -56,7 +56,7 @@ module fpga #
     parameter TDMA_BER_ENABLE = 0,
 
     // Structural configuration
-    parameter IF_COUNT = 2,
+    parameter IF_COUNT = 1,
     parameter PORTS_PER_IF = 1,
     parameter SCHED_PER_IF = PORTS_PER_IF,
     parameter PORT_MASK = 0,
@@ -203,7 +203,7 @@ parameter IF_PTP_PERIOD_FNS = 16'h6666;
 parameter TX_TAG_WIDTH = 16;
 
 // Ethernet interface configuration
-parameter GMII_DATA_WIDTH = 8;
+parameter GMII_DATA_WIDTH = 64;
 parameter AXIS_ETH_DATA_WIDTH = GMII_DATA_WIDTH;
 parameter AXIS_ETH_KEEP_WIDTH = AXIS_ETH_DATA_WIDTH/8;
 parameter AXIS_ETH_SYNC_DATA_WIDTH = AXIS_ETH_DATA_WIDTH;
@@ -611,7 +611,7 @@ phy_inst (
       *PLL out
      */
      .xcvr_gtrefclk00_in(sfp_mgt_refclk_0),
-     .xcvr_gtrefclk01_in(sfp_mgt_refclk_0),
+     .xcvr_gtrefclk01_in(),
 
     /*
      * Serial data

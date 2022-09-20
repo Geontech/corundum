@@ -120,8 +120,8 @@ module eth_xcvr_phy_1g_wrapper #
 );
 
 // wire
-/wire txoutclk;
-/wire rxoutclk;
+wire txoutclk;
+wire rxoutclk;
 wire gt_tx_reset_done;
 wire gt_rx_reset_done;
 wire gt_rx_pma_reset_done;
@@ -273,7 +273,7 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     .gt_txbufstatus           (),
     .gt_rxrate                (reg3),
     .gt_cpllrefclksel         (reg3),
-    .gt_gtrefclk1             (),
+    .gt_gtrefclk1             (xcvr_gtrefclk01_in),
     .gt_pcsrsvdin             (reg16),
     .gt_dmonitorout           (),
     .gtpowergood              (xcvr_gtpowergood_out),

@@ -64,7 +64,8 @@ SYN_FILES += rtl/common/tx_scheduler_rr.v
 #SYN_FILES += rtl/common/tdma_ber_ch.v
 
 #SYN_FILES += lib/eth/rtl/eth_mac_10g.v
-SYN_FILES += lib/eth/rtl/eth_mac_1g.v
+#SYN_FILES += lib/eth/rtl/eth_mac_1g.v
+SYN_FILES += rtl/10g_to_1g_files/eth_mac_1g.v
 
 #SYN_FILES += lib/eth/rtl/axis_xgmii_rx_64.v
 #SYN_FILES += lib/eth/rtl/axis_xgmii_rx_64.v
@@ -131,12 +132,15 @@ XDC_FILES += lib/eth/syn/vivado/ptp_clock_cdc.tcl
 XDC_FILES += ../../../common/syn/vivado/mqnic_port.tcl
 XDC_FILES += ../../../common/syn/vivado/mqnic_ptp_clock.tcl
 XDC_FILES += ../../../common/syn/vivado/rb_drp.tcl
-XDC_FILES += ../../../common/syn/vivado/eth_xcvr_phy_10g_gty_wrapper.tcl
+#XDC_FILES += ../../../common/syn/vivado/eth_xcvr_phy_10g_gty_wrapper.tcl
 XDC_FILES += ../../../common/syn/vivado/tdma_ber_ch.tcl
 
 # IP
 IP_TCL_FILES = ip/zynq_ps.tcl
 IP_TCL_FILES += ip/gig_ethernet_pcs_pma.tcl
+IP_TCL_FILES += ip/axis_data_fifo.tcl
+IP_TCL_FILES += ip/axis_dwidth_converter_rx.tcl
+IP_TCL_FILES += ip/axis_dwidth_converter_tx.tcl
 
 # Configuration
 CONFIG_TCL_FILES = ./config.tcl

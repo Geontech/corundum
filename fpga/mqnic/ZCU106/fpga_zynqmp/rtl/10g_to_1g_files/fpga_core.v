@@ -157,7 +157,7 @@ module fpga_core #
     parameter AXIL_APP_CTRL_STRB_WIDTH = (AXIL_APP_CTRL_DATA_WIDTH/8),
 
     // Ethernet interface configuration
-    parameter GMII_DATA_WIDTH = 8,
+    parameter GMII_DATA_WIDTH = 64,
     parameter AXIS_ETH_DATA_WIDTH = GMII_DATA_WIDTH,
     parameter AXIS_ETH_KEEP_WIDTH = AXIS_ETH_DATA_WIDTH/8,
     parameter AXIS_ETH_SYNC_DATA_WIDTH = AXIS_ETH_DATA_WIDTH,
@@ -523,11 +523,15 @@ wire [PORT_COUNT-1:0]                         axis_eth_rx_tready;
 wire [PORT_COUNT-1:0]                         axis_eth_rx_tlast;
 wire [PORT_COUNT*AXIS_ETH_RX_USER_WIDTH-1:0]  axis_eth_rx_tuser;
 
-
 generate
     genvar n;
 
-    for (n = 0; n < PORT_COUNT; n = n + 1) begin : mac
+    for (n = 0; n < PORT_COUNT ; n = n + 1) begin : mac
+
+        assign eth_tx_clk[n] = sfp0_tx_clk;
+        assign eth_tx_rst[n] = sfp0_tx_rst;
+        assign eth_rx_clk[n] = sfp0_rx_clk;
+        assign eth_rx_rst[n] = sfp0_rx_rst;
 
         eth_mac_1g #(
             .DATA_WIDTH(AXIS_ETH_DATA_WIDTH),
@@ -549,14 +553,14 @@ generate
             .rx_rst(sfp0_rx_rst),
 
             .tx_axis_tdata(axis_eth_tx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            //.tx_axis_tkeep(),
+            //.tx_axis_tkeep(axis_eth_tx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
             .tx_axis_tvalid(axis_eth_tx_tvalid[n +: 1]),
             .tx_axis_tready(axis_eth_tx_tready[n +: 1]),
             .tx_axis_tlast(axis_eth_tx_tlast[n +: 1]),
             .tx_axis_tuser(axis_eth_tx_tuser[n*AXIS_ETH_TX_USER_WIDTH +: AXIS_ETH_TX_USER_WIDTH]),
 
             .rx_axis_tdata(axis_eth_rx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            //.rx_axis_tkeep(),
+            //.rx_axis_tkeep(axis_eth_rx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
             .rx_axis_tvalid(axis_eth_rx_tvalid[n +: 1]),
             .rx_axis_tlast(axis_eth_rx_tlast[n +: 1]),
             .rx_axis_tuser(axis_eth_rx_tuser[n*AXIS_ETH_RX_USER_WIDTH +: AXIS_ETH_RX_USER_WIDTH]),
