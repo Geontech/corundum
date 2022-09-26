@@ -64,8 +64,8 @@ module eth_xcvr_phy_1g_wrapper #
     /*
      * Common
      */
-
     output wire                   xcvr_gtpowergood_out,
+    input  wire                   xcvr_gtrefclk,
 
 
     /*
@@ -82,8 +82,6 @@ module eth_xcvr_phy_1g_wrapper #
     /*
      * PLL out
      */
-    input  wire                   xcvr_gtrefclk00_in,
-    input  wire                   xcvr_gtrefclk01_in,
 
     /*
      * Serial data
@@ -120,8 +118,8 @@ module eth_xcvr_phy_1g_wrapper #
 );
 
 // wire
-/wire txoutclk;
-/wire rxoutclk;
+wire txoutclk;
+wire rxoutclk;
 wire gt_tx_reset_done;
 wire gt_rx_reset_done;
 wire gt_rx_pma_reset_done;
@@ -197,7 +195,7 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     // Transceiver Interface
     //----------------------
 
-    .gtrefclk                 (xcvr_gtrefclk00_in),
+    .gtrefclk                 (xcvr_gtrefclk),
     .txp                      (xcvr_txp),
     .txn                      (xcvr_txn),
     .rxp                      (xcvr_rxp),
@@ -273,6 +271,7 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     .gt_txbufstatus           (),
     .gt_rxrate                (reg3),
     .gt_cpllrefclksel         (reg3),
+    //.gt_gtrefclk1             (xcvr_gtrefclk),
     .gt_gtrefclk1             (),
     .gt_pcsrsvdin             (reg16),
     .gt_dmonitorout           (),

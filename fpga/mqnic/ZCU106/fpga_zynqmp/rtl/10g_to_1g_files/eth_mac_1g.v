@@ -120,35 +120,35 @@ module eth_mac_1g #
 reg constant_rx_tready = 1'b1;
 
 // dwc to fifo
-wire w_axis_rx_tdata;
-wire w_axis_rx_tvalid;
-wire w_axis_rx_tlast;
-wire w_axis_rx_tuser;
-wire w_axis_rx_tready;
+wire [DATA_WIDTH-1:0]      w_axis_rx_tdata;
+wire                       w_axis_rx_tvalid;
+wire                       w_axis_rx_tlast;
+wire                       w_axis_rx_tuser;
+wire                       w_axis_rx_tready;
 
 // dwc to gmii
-wire rx_axis_gmii_tdata;
-wire rx_axis_gmii_tvalid;
-wire rx_axis_gmii_tlast;
-wire rx_axis_gmii_tuser;
+wire [GMII_DATA_WIDTH-1:0] rx_axis_gmii_tdata;
+wire                       rx_axis_gmii_tvalid;
+wire                       rx_axis_gmii_tlast;
+wire                       rx_axis_gmii_tuser;
 
 ///////////////////////////////////////
 //TX
 ///////////////////////////////////////
 
 // dwc to fifo
-wire w_axis_tx_tdata;
-wire w_axis_tx_tvalid;
-wire w_axis_tx_tlast;
-wire w_axis_tx_tuser;
-wire w_axis_tx_tready;
+wire [DATA_WIDTH-1:0]      w_axis_tx_tdata;
+wire                       w_axis_tx_tvalid;
+wire                       w_axis_tx_tlast;
+wire                       w_axis_tx_tuser;
+wire                       w_axis_tx_tready;
 
 // dwc to gmii
-wire tx_axis_gmii_tdata;
-wire tx_axis_gmii_tvalid;
-wire tx_axis_gmii_tready;
-wire tx_axis_gmii_tlast;
-wire tx_axis_gmii_tuser;
+wire [GMII_DATA_WIDTH-1:0] tx_axis_gmii_tdata;
+wire                       tx_axis_gmii_tvalid;
+wire                       tx_axis_gmii_tready;
+wire                       tx_axis_gmii_tlast;
+wire                       tx_axis_gmii_tuser;
 
 ////////////////////////////////////////////////////////////
 //RX
@@ -246,8 +246,6 @@ axis_data_fifo_tx_inst(
 );
 
 ////////////////////////////////////////////////////////////
-
-
 
 axis_gmii_rx #(
     .DATA_WIDTH(GMII_DATA_WIDTH),

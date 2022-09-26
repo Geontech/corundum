@@ -523,71 +523,60 @@ wire [PORT_COUNT-1:0]                         axis_eth_rx_tready;
 wire [PORT_COUNT-1:0]                         axis_eth_rx_tlast;
 wire [PORT_COUNT*AXIS_ETH_RX_USER_WIDTH-1:0]  axis_eth_rx_tuser;
 
-generate
-    genvar n;
+assign eth_tx_clk[PORT_COUNT-1] = sfp0_tx_clk;
+assign eth_tx_rst[PORT_COUNT-1] = sfp0_tx_rst;
+assign eth_rx_clk[PORT_COUNT-1] = sfp0_rx_clk;
+assign eth_rx_rst[PORT_COUNT-1] = sfp0_rx_rst;
 
-    for (n = 0; n < PORT_COUNT ; n = n + 1) begin : mac
+eth_mac_1g #(
+    .DATA_WIDTH(AXIS_ETH_DATA_WIDTH),
+    .ENABLE_PADDING(ENABLE_PADDING),
+    .MIN_FRAME_LENGTH(MIN_FRAME_LENGTH),
+    .TX_PTP_TS_ENABLE(PTP_TS_ENABLE),
+    .TX_PTP_TS_WIDTH(PTP_TS_WIDTH),
+    .TX_PTP_TAG_ENABLE(PTP_TS_ENABLE),
+    .TX_PTP_TAG_WIDTH(TX_TAG_WIDTH),
+    .RX_PTP_TS_ENABLE(PTP_TS_ENABLE),
+    .RX_PTP_TS_WIDTH(PTP_TS_WIDTH),
+    .TX_USER_WIDTH(AXIS_ETH_TX_USER_WIDTH),
+    .RX_USER_WIDTH(AXIS_ETH_RX_USER_WIDTH)
+)
+eth_mac_inst (
+    .tx_clk(sfp0_tx_clk),
+    .tx_rst(sfp0_tx_rst),
+    .rx_clk(sfp0_rx_clk),
+    .rx_rst(sfp0_rx_rst),
 
-        assign eth_tx_clk[n] = sfp0_tx_clk;
-        assign eth_tx_rst[n] = sfp0_tx_rst;
-        assign eth_rx_clk[n] = sfp0_rx_clk;
-        assign eth_rx_rst[n] = sfp0_rx_rst;
+    .tx_axis_tdata(axis_eth_tx_tdata[AXIS_ETH_DATA_WIDTH-1:0]),
+    .tx_axis_tvalid(axis_eth_tx_tvalid),
+    .tx_axis_tready(axis_eth_tx_tready),
+    .tx_axis_tlast(axis_eth_tx_tlast),
+    .tx_axis_tuser(axis_eth_tx_tuser[AXIS_ETH_TX_USER_WIDTH-1:0]),
 
-        eth_mac_1g #(
-            .DATA_WIDTH(AXIS_ETH_DATA_WIDTH),
-            .ENABLE_PADDING(ENABLE_PADDING),
-            .MIN_FRAME_LENGTH(MIN_FRAME_LENGTH),
-            .TX_PTP_TS_ENABLE(PTP_TS_ENABLE),
-            .TX_PTP_TS_WIDTH(PTP_TS_WIDTH),
-            .TX_PTP_TAG_ENABLE(PTP_TS_ENABLE),
-            .TX_PTP_TAG_WIDTH(TX_TAG_WIDTH),
-            .RX_PTP_TS_ENABLE(PTP_TS_ENABLE),
-            .RX_PTP_TS_WIDTH(PTP_TS_WIDTH),
-            .TX_USER_WIDTH(AXIS_ETH_TX_USER_WIDTH),
-            .RX_USER_WIDTH(AXIS_ETH_RX_USER_WIDTH)
-        )
-        eth_mac_inst (
-            .tx_clk(sfp0_tx_clk),
-            .tx_rst(sfp0_tx_rst),
-            .rx_clk(sfp0_rx_clk),
-            .rx_rst(sfp0_rx_rst),
+    .rx_axis_tdata(axis_eth_rx_tdata[AXIS_ETH_DATA_WIDTH-1:0]),
+    .rx_axis_tvalid(axis_eth_rx_tvalid),
+    .rx_axis_tlast(axis_eth_rx_tlast),
+    .rx_axis_tuser(axis_eth_rx_tuser[AXIS_ETH_RX_USER_WIDTH-1:0]),
 
-            .tx_axis_tdata(axis_eth_tx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            //.tx_axis_tkeep(axis_eth_tx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
-            .tx_axis_tvalid(axis_eth_tx_tvalid[n +: 1]),
-            .tx_axis_tready(axis_eth_tx_tready[n +: 1]),
-            .tx_axis_tlast(axis_eth_tx_tlast[n +: 1]),
-            .tx_axis_tuser(axis_eth_tx_tuser[n*AXIS_ETH_TX_USER_WIDTH +: AXIS_ETH_TX_USER_WIDTH]),
+    .gmii_rxd(sfp0_rxd),
+    .gmii_rx_dv(sfp0_rx_dv),
+    .gmii_rx_er(sfp0_rx_er),
+    .gmii_txd(sfp0_txd),
+    .gmii_tx_en(sfp0_tx_en),
+    .gmii_tx_er(sfp0_tx_er),
 
-            .rx_axis_tdata(axis_eth_rx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            //.rx_axis_tkeep(axis_eth_rx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
-            .rx_axis_tvalid(axis_eth_rx_tvalid[n +: 1]),
-            .rx_axis_tlast(axis_eth_rx_tlast[n +: 1]),
-            .rx_axis_tuser(axis_eth_rx_tuser[n*AXIS_ETH_RX_USER_WIDTH +: AXIS_ETH_RX_USER_WIDTH]),
+    .tx_ptp_ts(eth_tx_ptp_ts_96[PTP_TS_WIDTH-1:0]),
+    .rx_ptp_ts(eth_rx_ptp_ts_96[PTP_TS_WIDTH-1:0]),
+    .tx_axis_ptp_ts(axis_eth_tx_ptp_ts[PTP_TS_WIDTH-1:0]),
+    .tx_axis_ptp_ts_tag(axis_eth_tx_ptp_ts_tag[TX_TAG_WIDTH-1:0]),
+    .tx_axis_ptp_ts_valid(axis_eth_tx_ptp_ts_valid),
 
-            .gmii_rxd(sfp0_rxd),
-            .gmii_rx_dv(sfp0_rx_dv),
-            .gmii_rx_er(sfp0_rx_er),
-            .gmii_txd(sfp0_txd),
-            .gmii_tx_en(sfp0_tx_en),
-            .gmii_tx_er(sfp0_tx_er),
+    .tx_error_underflow(),
+    .rx_error_bad_frame(),
+    .rx_error_bad_fcs(),
 
-            .tx_ptp_ts(eth_tx_ptp_ts_96[n*PTP_TS_WIDTH +: PTP_TS_WIDTH]),
-            .rx_ptp_ts(eth_rx_ptp_ts_96[n*PTP_TS_WIDTH +: PTP_TS_WIDTH]),
-            .tx_axis_ptp_ts(axis_eth_tx_ptp_ts[n*PTP_TS_WIDTH +: PTP_TS_WIDTH]),
-            .tx_axis_ptp_ts_tag(axis_eth_tx_ptp_ts_tag[n*TX_TAG_WIDTH +: TX_TAG_WIDTH]),
-            .tx_axis_ptp_ts_valid(axis_eth_tx_ptp_ts_valid[n +: 1]),
-
-            .tx_error_underflow(),
-            .rx_error_bad_frame(),
-            .rx_error_bad_fcs(),
-
-            .ifg_delay(8'd12)
-        );
-
-    end
-
-endgenerate
+    .ifg_delay(8'd12)
+);
 
 mqnic_core_axi #(
     // FW and board IDs

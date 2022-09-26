@@ -529,7 +529,8 @@ zynq_ps zynq_ps_inst (
 // GMII 10G PHY
 wire                         sfp0_tx_clk_int;
 wire                         sfp0_tx_rst_int;
-wire                         sfp0_rx_clk_int;
+wire                         sfp0_rx_clk_int_bufg_in;
+wire                         sfp0_rx_clk_int_bufg_out;
 wire                         sfp0_rx_rst_int;
 wire [GMII_DATA_WIDTH-1:0]   sfp0_txd_int;
 wire                         sfp0_tx_en_int;
@@ -596,6 +597,7 @@ phy_inst (
      * Common
      */
     .xcvr_gtpowergood_out(sfp_gtpowergood),
+    .xcvr_gtrefclk(sfp_mgt_refclk_0),
 
     /*
      * DRP
@@ -607,26 +609,20 @@ phy_inst (
     .drp_we(sfp_drp_we),
     .drp_do(sfp_drp_do),
 
-     /*
-      *PLL out
-     */
-     .xcvr_gtrefclk00_in(sfp_mgt_refclk_0),
-     .xcvr_gtrefclk01_in(),
-
     /*
      * Serial data
      */
-    .xcvr_txp({sfp0_tx_p}),
-    .xcvr_txn({sfp0_tx_n}),
-    .xcvr_rxp({sfp0_rx_p}),
-    .xcvr_rxn({sfp0_rx_n}),
+    .xcvr_txp(sfp0_tx_p),
+    .xcvr_txn(sfp0_tx_n),
+    .xcvr_rxp(sfp0_rx_p),
+    .xcvr_rxn(sfp0_rx_n),
 
     /*
      * PHY connections
      */
     .phy_tx_clk(sfp0_tx_clk_int),
     .phy_tx_rst(sfp0_tx_rst_int),
-    .phy_rx_clk(sfp0_rx_clk_int),
+    .phy_rx_clk(sfp0_rx_clk_int_bufg_in),
     .phy_rx_rst(sfp0_rx_rst_int),
     .phy_gmii_txd(sfp0_txd_int),
     .phy_gmii_tx_en(sfp0_tx_en_int),
@@ -640,6 +636,12 @@ phy_inst (
     .phy_rx_block_lock(sfp0_rx_block_lock),
     .phy_rx_high_ber()
 );
+
+BUFG BUFG_inst (
+   .O(sfp0_rx_clk_int_bufg_out), // 1-bit output: Clock output.
+   .I(sfp0_rx_clk_int_bufg_in)  // 1-bit input: Clock input.
+);
+
 
 wire ptp_clk;
 wire ptp_rst;
@@ -899,7 +901,7 @@ core_inst (
      */
     .sfp0_tx_clk(sfp0_tx_clk_int),
     .sfp0_tx_rst(sfp0_tx_rst_int),
-    .sfp0_rx_clk(sfp0_rx_clk_int),
+    .sfp0_rx_clk(sfp0_rx_clk_int_bufg_out),
     .sfp0_rx_rst(sfp0_rx_rst_int),
     .sfp0_txd(sfp0_txd_int),
     .sfp0_tx_en(sfp0_tx_en_int),
