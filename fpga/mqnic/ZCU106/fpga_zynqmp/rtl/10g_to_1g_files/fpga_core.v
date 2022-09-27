@@ -308,7 +308,6 @@ module fpga_core #
     input  wire                                 sfp0_isolate,
     output wire                                 sfp0_tx_disable_b,
     input  wire                                 sfp_drp_clk,
-    input  wire                                 sfp_drp_rst,
     output wire [23:0]                          sfp_drp_addr,
     output wire [15:0]                          sfp_drp_di,
     output wire                                 sfp_drp_en,
@@ -478,7 +477,7 @@ sfp_rb_drp_inst (
      * DRP
      */
     .drp_clk(sfp_drp_clk),
-    .drp_rst(),
+    .drp_rst(1'b0),
     .drp_addr(sfp_drp_addr),
     .drp_di(sfp_drp_di),
     .drp_en(sfp_drp_en),

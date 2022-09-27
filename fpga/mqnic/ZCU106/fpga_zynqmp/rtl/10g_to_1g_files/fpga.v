@@ -529,8 +529,7 @@ zynq_ps zynq_ps_inst (
 // GMII 10G PHY
 wire                         sfp0_tx_clk_int;
 wire                         sfp0_tx_rst_int;
-wire                         sfp0_rx_clk_int_bufg_in;
-wire                         sfp0_rx_clk_int_bufg_out;
+wire                         sfp0_rx_clk_int;
 wire                         sfp0_rx_rst_int;
 wire [GMII_DATA_WIDTH-1:0]   sfp0_txd_int;
 wire                         sfp0_tx_en_int;
@@ -555,26 +554,27 @@ wire                         sfp0_rx_status;
 wire                         sfp_gtpowergood;
 
 wire                         sfp_mgt_refclk_0;
-wire                         sfp_mgt_refclk_0_int;
-wire                         sfp_mgt_refclk_0_bufg;
+//wire                         sfp_mgt_refclk_0_int;
+//wire                         sfp_mgt_refclk_0_bufg;
+wire                         sfp_refclk_out;
 
-IBUFDS_GTE4 ibufds_gte4_sfp_mgt_refclk_0_inst (
-    .I     (sfp_mgt_refclk_0_p),
-    .IB    (sfp_mgt_refclk_0_n),
-    .CEB   (1'b0),
-    .O     (sfp_mgt_refclk_0),
-    .ODIV2 (sfp_mgt_refclk_0_int)
-);
-
-BUFG_GT bufg_gt_sfp_mgt_refclk_0_inst (
-    .CE      (sfp_gtpowergood),
-    .CEMASK  (1'b1),
-    .CLR     (1'b0),
-    .CLRMASK (1'b1),
-    .DIV     (3'd0),
-    .I       (sfp_mgt_refclk_0_int),
-    .O       (sfp_mgt_refclk_0_bufg)
-);
+//IBUFDS_GTE4 ibufds_gte4_sfp_mgt_refclk_0_inst (
+//    .I     (sfp_mgt_refclk_0_p),
+//    .IB    (sfp_mgt_refclk_0_n),
+//    .CEB   (1'b0),
+//    .O     (sfp_mgt_refclk_0),
+//    .ODIV2 (sfp_mgt_refclk_0_int)
+//);
+//
+//BUFG_GT bufg_gt_sfp_mgt_refclk_0_inst (
+//    .CE      (sfp_gtpowergood),
+//    .CEMASK  (1'b1),
+//    .CLR     (1'b0),
+//    .CLRMASK (1'b1),
+//    .DIV     (3'd0),
+//    .I       (sfp_mgt_refclk_0_int),
+//    .O       (sfp_mgt_refclk_0_bufg)
+//);
 
 wire sfp_rst;
 
@@ -582,7 +582,8 @@ sync_reset #(
     .N(4)
 )
 sfp_sync_reset_inst (
-    .clk(sfp_mgt_refclk_0_bufg),
+    //.clk(sfp_mgt_refclk_0_bufg),
+    .clk(sfp_refclk_out),
     .rst(rst_125mhz_int),
     .out(sfp_rst)
 );
@@ -596,8 +597,9 @@ phy_inst (
     /*
      * Common
      */
-    .xcvr_gtpowergood_out(sfp_gtpowergood),
-    .xcvr_gtrefclk(sfp_mgt_refclk_0),
+    .xcvr_gtrefclk_p(sfp_mgt_refclk_0_p),
+    .xcvr_gtrefclk_n(sfp_mgt_refclk_0_n),
+    .xcvr_gtrefclk_out(sfp_refclk_out),
 
     /*
      * DRP
@@ -622,7 +624,7 @@ phy_inst (
      */
     .phy_tx_clk(sfp0_tx_clk_int),
     .phy_tx_rst(sfp0_tx_rst_int),
-    .phy_rx_clk(sfp0_rx_clk_int_bufg_in),
+    .phy_rx_clk(sfp0_rx_clk_int),
     .phy_rx_rst(sfp0_rx_rst_int),
     .phy_gmii_txd(sfp0_txd_int),
     .phy_gmii_tx_en(sfp0_tx_en_int),
@@ -634,20 +636,24 @@ phy_inst (
     .phy_rx_bad_block(),
     .phy_rx_sequence_error(),
     .phy_rx_block_lock(sfp0_rx_block_lock),
-    .phy_rx_high_ber()
+    .phy_rx_high_ber(),
+
+    /*
+     * General IO's
+     */
+    .xcvr_gtrefclk1(sfp_mgt_refclk_0),
+    .xcvr_gtpowergood_out(sfp_gtpowergood)
 );
 
-BUFG BUFG_inst (
-   .O(sfp0_rx_clk_int_bufg_out), // 1-bit output: Clock output.
-   .I(sfp0_rx_clk_int_bufg_in)  // 1-bit input: Clock input.
-);
 
 
 wire ptp_clk;
 wire ptp_rst;
 wire ptp_sample_clk;
 
-assign ptp_clk = sfp_mgt_refclk_0_bufg;
+//assign ptp_clk = sfp_mgt_refclk_0_bufg;
+assign ptp_clk = sfp_refclk_out;
+
 assign ptp_rst = sfp_rst;
 assign ptp_sample_clk = clk_125mhz_int;
 
@@ -901,7 +907,7 @@ core_inst (
      */
     .sfp0_tx_clk(sfp0_tx_clk_int),
     .sfp0_tx_rst(sfp0_tx_rst_int),
-    .sfp0_rx_clk(sfp0_rx_clk_int_bufg_out),
+    .sfp0_rx_clk(sfp0_rx_clk_int),
     .sfp0_rx_rst(sfp0_rx_rst_int),
     .sfp0_txd(sfp0_txd_int),
     .sfp0_tx_en(sfp0_tx_en_int),
@@ -912,7 +918,6 @@ core_inst (
     .sfp0_tx_disable_b(sfp0_tx_disable_b),
 
     .sfp_drp_clk(sfp_drp_clk),
-    .sfp_drp_rst(),
     .sfp_drp_addr(sfp_drp_addr),
     .sfp_drp_di(sfp_drp_di),
     .sfp_drp_en(sfp_drp_en),

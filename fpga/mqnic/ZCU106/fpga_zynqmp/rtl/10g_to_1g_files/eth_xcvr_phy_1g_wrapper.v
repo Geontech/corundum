@@ -65,7 +65,10 @@ module eth_xcvr_phy_1g_wrapper #
      * Common
      */
     output wire                   xcvr_gtpowergood_out,
-    input  wire                   xcvr_gtrefclk,
+    input  wire                   xcvr_gtrefclk_p,
+    input  wire                   xcvr_gtrefclk_n,
+    output wire                   xcvr_gtrefclk_out,
+    input  wire                   xcvr_gtrefclk1,
 
 
     /*
@@ -195,23 +198,30 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     // Transceiver Interface
     //----------------------
 
-    .gtrefclk                 (xcvr_gtrefclk),
+    .gtrefclk_p               (xcvr_gtrefclk_p),
+    .gtrefclk_n               (xcvr_gtrefclk_n),
+    //.gtrefclk_out             (xcvr_gtrefclk_out),
+    .gtrefclk_out             (),
+
     .txp                      (xcvr_txp),
     .txn                      (xcvr_txn),
     .rxp                      (xcvr_rxp),
     .rxn                      (xcvr_rxn),
+
     .resetdone                (),
-    .cplllock                 (),
-    .mmcm_reset               (),
-    .txoutclk                 (txoutclk),
-    .rxoutclk                 (rxoutclk),
-    .userclk                  (reg0),
-    .userclk2                 (reg0),
-    .rxuserclk                (reg0),
-    .rxuserclk2               (reg0),
+
+    .userclk_out              (txoutclk),
+
+    //.userclk2_out             (),
+    .userclk2_out             (xcvr_gtrefclk_out),
+
+    .rxuserclk_out            (rxoutclk),
+    .rxuserclk2_out           (),
+
     .independent_clock_bufg   (reg0),
-    .pma_reset                (reg0),
-    .mmcm_locked              (reg0),
+
+    .pma_reset_out            (),
+    .mmcm_locked_out          (),
 
     // GMII Interface
     //---------------
@@ -231,6 +241,7 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     //-------------
     .status_vector            (),
     .reset                    (rst_int),
+
     .gt_drpaddr               (drp_addr),
     .gt_drpclk                (drp_clk),
     .gt_drpdi                 (drp_di),
@@ -271,10 +282,10 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
     .gt_txbufstatus           (),
     .gt_rxrate                (reg3),
     .gt_cpllrefclksel         (reg3),
-    //.gt_gtrefclk1             (xcvr_gtrefclk),
-    .gt_gtrefclk1             (),
+    .gt_gtrefclk1             (xcvr_gtrefclk1),
     .gt_pcsrsvdin             (reg16),
     .gt_dmonitorout           (),
+
     .gtpowergood              (xcvr_gtpowergood_out),
     .signal_detect            (reg0)
 );
