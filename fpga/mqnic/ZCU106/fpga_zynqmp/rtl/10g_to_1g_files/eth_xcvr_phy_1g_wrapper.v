@@ -64,12 +64,9 @@ module eth_xcvr_phy_1g_wrapper #
     /*
      * Common
      */
-    output wire                   xcvr_gtpowergood_out,
     input  wire                   xcvr_gtrefclk_p,
     input  wire                   xcvr_gtrefclk_n,
-    output wire                   xcvr_gtrefclk_out,
-    input  wire                   xcvr_gtrefclk1,
-
+    output wire                   xcvr_userclk2_out,
 
     /*
      * DRP
@@ -81,10 +78,6 @@ module eth_xcvr_phy_1g_wrapper #
     input  wire                   drp_we,
     output wire [15:0]            drp_do,
     output wire                   drp_rdy,
-
-    /*
-     * PLL out
-     */
 
     /*
      * Serial data
@@ -110,14 +103,11 @@ module eth_xcvr_phy_1g_wrapper #
     output wire                   phy_gmii_rx_er,
 
     /*
-     * STATUS connections
+     * General IO's
      */
+    input  wire                   xcvr_gtrefclk1,
+    output wire                   xcvr_gtpowergood_out
 
-    output wire                   phy_tx_bad_block,
-    output wire                   phy_rx_bad_block,
-    output wire                   phy_rx_sequence_error,
-    output wire                   phy_rx_block_lock,
-    output wire                   phy_rx_high_ber
 );
 
 // wire
@@ -200,29 +190,20 @@ gig_ethernet_pcs_pma_0 eth_pcspma (
 
     .gtrefclk_p               (xcvr_gtrefclk_p),
     .gtrefclk_n               (xcvr_gtrefclk_n),
-    //.gtrefclk_out             (xcvr_gtrefclk_out),
     .gtrefclk_out             (),
 
     .txp                      (xcvr_txp),
     .txn                      (xcvr_txn),
     .rxp                      (xcvr_rxp),
     .rxn                      (xcvr_rxn),
-
     .resetdone                (),
-
     .userclk_out              (txoutclk),
-
-    //.userclk2_out             (),
-    .userclk2_out             (xcvr_gtrefclk_out),
-
+    .userclk2_out             (xcvr_userclk2_out),
     .rxuserclk_out            (rxoutclk),
     .rxuserclk2_out           (),
-
     .independent_clock_bufg   (reg0),
-
     .pma_reset_out            (),
     .mmcm_locked_out          (),
-
     // GMII Interface
     //---------------
     .gmii_txd                 (phy_gmii_txd),

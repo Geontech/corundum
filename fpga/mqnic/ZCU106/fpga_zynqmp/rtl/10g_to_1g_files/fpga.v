@@ -549,41 +549,17 @@ wire                         sfp_drp_we;
 wire [15:0]                  sfp_drp_do;
 wire                         sfp_drp_rdy;
 
-wire                         sfp0_rx_block_lock;
-wire                         sfp0_rx_status;
-wire                         sfp_gtpowergood;
 
+wire                         sfp_userclk2_out;
+wire                         sfp_rst;
 wire                         sfp_mgt_refclk_0;
-//wire                         sfp_mgt_refclk_0_int;
-//wire                         sfp_mgt_refclk_0_bufg;
-wire                         sfp_refclk_out;
-
-//IBUFDS_GTE4 ibufds_gte4_sfp_mgt_refclk_0_inst (
-//    .I     (sfp_mgt_refclk_0_p),
-//    .IB    (sfp_mgt_refclk_0_n),
-//    .CEB   (1'b0),
-//    .O     (sfp_mgt_refclk_0),
-//    .ODIV2 (sfp_mgt_refclk_0_int)
-//);
-//
-//BUFG_GT bufg_gt_sfp_mgt_refclk_0_inst (
-//    .CE      (sfp_gtpowergood),
-//    .CEMASK  (1'b1),
-//    .CLR     (1'b0),
-//    .CLRMASK (1'b1),
-//    .DIV     (3'd0),
-//    .I       (sfp_mgt_refclk_0_int),
-//    .O       (sfp_mgt_refclk_0_bufg)
-//);
-
-wire sfp_rst;
+wire                         sfp_gtpowergood;
 
 sync_reset #(
     .N(4)
 )
 sfp_sync_reset_inst (
-    //.clk(sfp_mgt_refclk_0_bufg),
-    .clk(sfp_refclk_out),
+    .clk(sfp_userclk2_out),
     .rst(rst_125mhz_int),
     .out(sfp_rst)
 );
@@ -599,7 +575,7 @@ phy_inst (
      */
     .xcvr_gtrefclk_p(sfp_mgt_refclk_0_p),
     .xcvr_gtrefclk_n(sfp_mgt_refclk_0_n),
-    .xcvr_gtrefclk_out(sfp_refclk_out),
+    .xcvr_userclk2_out(sfp_userclk2_out),
 
     /*
      * DRP
@@ -610,6 +586,7 @@ phy_inst (
     .drp_en(sfp_drp_en),
     .drp_we(sfp_drp_we),
     .drp_do(sfp_drp_do),
+    .drp_rdy(sfp_drp_rdy),
 
     /*
      * Serial data
@@ -632,11 +609,6 @@ phy_inst (
     .phy_gmii_rxd(sfp0_rxd_int),
     .phy_gmii_rx_dv(sfp0_rx_dv_int),
     .phy_gmii_rx_er(sfp0_rx_er_int),
-    .phy_tx_bad_block(),
-    .phy_rx_bad_block(),
-    .phy_rx_sequence_error(),
-    .phy_rx_block_lock(sfp0_rx_block_lock),
-    .phy_rx_high_ber(),
 
     /*
      * General IO's
@@ -645,15 +617,11 @@ phy_inst (
     .xcvr_gtpowergood_out(sfp_gtpowergood)
 );
 
-
-
 wire ptp_clk;
 wire ptp_rst;
 wire ptp_sample_clk;
 
-//assign ptp_clk = sfp_mgt_refclk_0_bufg;
-assign ptp_clk = sfp_refclk_out;
-
+assign ptp_clk = sfp_userclk2_out;
 assign ptp_rst = sfp_rst;
 assign ptp_sample_clk = clk_125mhz_int;
 
