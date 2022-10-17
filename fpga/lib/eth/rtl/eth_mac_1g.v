@@ -33,7 +33,8 @@ THE SOFTWARE.
  */
 module eth_mac_1g #
 (
-    parameter DATA_WIDTH = 8,
+    parameter DATA_WIDTH = 64,
+    parameter GMII_DATA_WIDTH = 8,
     parameter ENABLE_PADDING = 1,
     parameter MIN_FRAME_LENGTH = 64,
     parameter TX_PTP_TS_ENABLE = 0,
@@ -54,7 +55,7 @@ module eth_mac_1g #
     /*
      * AXI input
      */
-    input  wire [DATA_WIDTH-1:0]        tx_axis_tdata,
+    input  wire [DATA_WIDTH-1:0]        tx_axis_tdata,  // 64 bit
     input  wire                         tx_axis_tvalid,
     output wire                         tx_axis_tready,
     input  wire                         tx_axis_tlast,
@@ -63,7 +64,7 @@ module eth_mac_1g #
     /*
      * AXI output
      */
-    output wire [DATA_WIDTH-1:0]        rx_axis_tdata,
+    output wire [DATA_WIDTH-1:0]        rx_axis_tdata,  // 64 bit
     output wire                         rx_axis_tvalid,
     output wire                         rx_axis_tlast,
     output wire [RX_USER_WIDTH-1:0]     rx_axis_tuser,
@@ -71,10 +72,10 @@ module eth_mac_1g #
     /*
      * GMII interface
      */
-    input  wire [DATA_WIDTH-1:0]        gmii_rxd,
+    input  wire [GMII_DATA_WIDTH-1:0]   gmii_rxd,
     input  wire                         gmii_rx_dv,
     input  wire                         gmii_rx_er,
-    output wire [DATA_WIDTH-1:0]        gmii_txd,
+    output wire [GMII_DATA_WIDTH-1:0]   gmii_txd,
     output wire                         gmii_tx_en,
     output wire                         gmii_tx_er,
 
@@ -110,8 +111,144 @@ module eth_mac_1g #
     input  wire [7:0]                   ifg_delay
 );
 
+
+///////////////////////////////////////
+//RX
+///////////////////////////////////////
+
+// tready register
+reg constant_rx_tready = 1'b1;
+
+// dwc to fifo
+wire [DATA_WIDTH-1:0]      w_axis_rx_tdata;
+wire                       w_axis_rx_tvalid;
+wire                       w_axis_rx_tlast;
+wire                       w_axis_rx_tuser;
+wire                       w_axis_rx_tready;
+
+// dwc to gmii
+wire [GMII_DATA_WIDTH-1:0] rx_axis_gmii_tdata;
+wire                       rx_axis_gmii_tvalid;
+wire                       rx_axis_gmii_tlast;
+wire                       rx_axis_gmii_tuser;
+
+///////////////////////////////////////
+//TX
+///////////////////////////////////////
+
+// dwc to fifo
+wire [DATA_WIDTH-1:0]      w_axis_tx_tdata;
+wire                       w_axis_tx_tvalid;
+wire                       w_axis_tx_tlast;
+wire                       w_axis_tx_tuser;
+wire                       w_axis_tx_tready;
+
+// dwc to gmii
+wire [GMII_DATA_WIDTH-1:0] tx_axis_gmii_tdata;
+wire                       tx_axis_gmii_tvalid;
+wire                       tx_axis_gmii_tready;
+wire                       tx_axis_gmii_tlast;
+wire                       tx_axis_gmii_tuser;
+
+////////////////////////////////////////////////////////////
+//RX
+////////////////////////////////////////////////////////////
+
+// Data-Width-Converter
+// Slave  = 8  bit
+// Master = 64 bit
+
+axis_dwidth_converter_rx #(
+)
+axis_dwidth_converter_rx_inst(
+    .aclk(rx_clk),
+    .aresetn(rx_rst),
+
+    .m_axis_tdata(w_axis_rx_tdata),    // 64 bit
+    .m_axis_tvalid(w_axis_rx_tvalid),
+    .m_axis_tlast(w_axis_rx_tlast),
+    .m_axis_tuser(w_axis_rx_tuser),
+    .m_axis_tready(w_axis_rx_tready),
+
+    .s_axis_tdata(rx_axis_gmii_tdata), // 8 bit
+    .s_axis_tvalid(rx_axis_gmii_tvalid),
+    .s_axis_tlast(rx_axis_gmii_tlast),
+    .s_axis_tuser(rx_axis_gmii_tuser),
+    .s_axis_tready()
+);
+
+// FIFO
+axis_data_fifo_0 #(
+)
+axis_data_fifo_rx_inst(
+    .s_axis_aclk(rx_clk),
+    .s_axis_aresetn(rx_rst),
+
+    .m_axis_tdata(rx_axis_tdata),
+    .m_axis_tvalid(rx_axis_tvalid),
+    .m_axis_tlast(rx_axis_tlast),
+    .m_axis_tuser(rx_axis_tuser),
+    .m_axis_tready(constant_rx_tready),
+
+    .s_axis_tdata(w_axis_rx_tdata),
+    .s_axis_tvalid(w_axis_rx_tvalid),
+    .s_axis_tlast(w_axis_rx_tlast),
+    .s_axis_tuser(w_axis_rx_tuser),
+    .s_axis_tready(w_axis_rx_tready)
+);
+
+////////////////////////////////////////////////////////////
+//TX
+////////////////////////////////////////////////////////////
+
+// Data-Width-Converter
+
+// Slave  = 64 bit
+// Master = 8  bit
+
+axis_dwidth_converter_tx #(
+)
+axis_dwidth_converter_tx_inst(
+    .aclk(tx_clk),
+    .aresetn(tx_rst),
+
+    .m_axis_tdata(tx_axis_gmii_tdata),   // 8 bit
+    .m_axis_tvalid(tx_axis_gmii_tvalid),
+    .m_axis_tlast(tx_axis_gmii_tlast),
+    .m_axis_tuser(tx_axis_gmii_tuser),
+    .m_axis_tready(tx_axis_gmii_tready),
+
+    .s_axis_tdata(w_axis_tx_tdata),      // 64 bit
+    .s_axis_tvalid(w_axis_tx_tvalid),
+    .s_axis_tlast(w_axis_tx_tlast),
+    .s_axis_tuser(w_axis_tx_tuser),
+    .s_axis_tready(w_axis_tx_tready)
+);
+
+// FIFO
+axis_data_fifo_0 #(
+)
+axis_data_fifo_tx_inst(
+    .s_axis_aclk(tx_clk),
+    .s_axis_aresetn(tx_rst),
+
+    .m_axis_tdata(w_axis_tx_tdata),
+    .m_axis_tvalid(w_axis_tx_tvalid),
+    .m_axis_tlast(w_axis_tx_tlast),
+    .m_axis_tuser(w_axis_tx_tuser),
+    .m_axis_tready(w_axis_tx_tready),
+
+    .s_axis_tdata(tx_axis_tdata),
+    .s_axis_tvalid(tx_axis_tvalid),
+    .s_axis_tlast(tx_axis_tlast),
+    .s_axis_tuser(tx_axis_tuser),
+    .s_axis_tready()
+);
+
+////////////////////////////////////////////////////////////
+
 axis_gmii_rx #(
-    .DATA_WIDTH(DATA_WIDTH),
+    .DATA_WIDTH(GMII_DATA_WIDTH),
     .PTP_TS_ENABLE(RX_PTP_TS_ENABLE),
     .PTP_TS_WIDTH(RX_PTP_TS_WIDTH),
     .USER_WIDTH(RX_USER_WIDTH)
@@ -122,10 +259,10 @@ axis_gmii_rx_inst (
     .gmii_rxd(gmii_rxd),
     .gmii_rx_dv(gmii_rx_dv),
     .gmii_rx_er(gmii_rx_er),
-    .m_axis_tdata(rx_axis_tdata),
-    .m_axis_tvalid(rx_axis_tvalid),
-    .m_axis_tlast(rx_axis_tlast),
-    .m_axis_tuser(rx_axis_tuser),
+    .m_axis_tdata(rx_axis_gmii_tdata),    // 8 bit
+    .m_axis_tvalid(rx_axis_gmii_tvalid),
+    .m_axis_tlast(rx_axis_gmii_tlast),
+    .m_axis_tuser(rx_axis_gmii_tuser),
     .ptp_ts(rx_ptp_ts),
     .clk_enable(rx_clk_enable),
     .mii_select(rx_mii_select),
@@ -135,7 +272,7 @@ axis_gmii_rx_inst (
 );
 
 axis_gmii_tx #(
-    .DATA_WIDTH(DATA_WIDTH),
+    .DATA_WIDTH(GMII_DATA_WIDTH),
     .ENABLE_PADDING(ENABLE_PADDING),
     .MIN_FRAME_LENGTH(MIN_FRAME_LENGTH),
     .PTP_TS_ENABLE(TX_PTP_TS_ENABLE),
@@ -147,11 +284,11 @@ axis_gmii_tx #(
 axis_gmii_tx_inst (
     .clk(tx_clk),
     .rst(tx_rst),
-    .s_axis_tdata(tx_axis_tdata),
-    .s_axis_tvalid(tx_axis_tvalid),
-    .s_axis_tready(tx_axis_tready),
-    .s_axis_tlast(tx_axis_tlast),
-    .s_axis_tuser(tx_axis_tuser),
+    .s_axis_tdata(tx_axis_gmii_tdata),  // 8 bit
+    .s_axis_tvalid(tx_axis_gmii_tvalid),
+    .s_axis_tready(tx_axis_gmii_tready),
+    .s_axis_tlast(tx_axis_gmii_tlast),
+    .s_axis_tuser(tx_axis_gmii_tuser),
     .gmii_txd(gmii_txd),
     .gmii_tx_en(gmii_tx_en),
     .gmii_tx_er(gmii_tx_er),

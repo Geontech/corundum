@@ -71,8 +71,6 @@ module fpga_core #
     parameter PTP_PORT_CDC_PIPELINE = 0,
     parameter PTP_PEROUT_ENABLE = 1,
     parameter PTP_PEROUT_COUNT = 1,
-    parameter IF_PTP_PERIOD_NS = 6'h6,
-    parameter IF_PTP_PERIOD_FNS = 16'h6666,
 
     // Queue manager configuration
     parameter EVENT_QUEUE_OP_TABLE_SIZE = 32,
@@ -109,7 +107,6 @@ module fpga_core #
     parameter RX_HASH_ENABLE = 1,
     parameter RX_CHECKSUM_ENABLE = 1,
     parameter ENABLE_PADDING = 1,
-    parameter ENABLE_DIC = 1,
     parameter MIN_FRAME_LENGTH = 64,
     parameter TX_FIFO_DEPTH = 32768,
     parameter RX_FIFO_DEPTH = 32768,
@@ -157,9 +154,9 @@ module fpga_core #
     parameter AXIL_APP_CTRL_STRB_WIDTH = (AXIL_APP_CTRL_DATA_WIDTH/8),
 
     // Ethernet interface configuration
-    parameter XGMII_DATA_WIDTH = 64,
-    parameter XGMII_CTRL_WIDTH = XGMII_DATA_WIDTH/8,
-    parameter AXIS_ETH_DATA_WIDTH = XGMII_DATA_WIDTH,
+    parameter GMII_DATA_WIDTH = 8,
+    parameter GMII_CTRL_WIDTH = GMII_DATA_WIDTH/8,
+    parameter AXIS_ETH_DATA_WIDTH = GMII_DATA_WIDTH,
     parameter AXIS_ETH_KEEP_WIDTH = AXIS_ETH_DATA_WIDTH/8,
     parameter AXIS_ETH_SYNC_DATA_WIDTH = AXIS_ETH_DATA_WIDTH,
     parameter AXIS_ETH_TX_USER_WIDTH = TX_TAG_WIDTH + 1,
@@ -298,13 +295,15 @@ module fpga_core #
      */
     input  wire                                 sfp0_tx_clk,
     input  wire                                 sfp0_tx_rst,
-    output wire [63:0]                          sfp0_txd,
-    output wire [7:0]                           sfp0_txc,
+    output wire [7:0]                           sfp0_txd,
+    output wire                                 sfp0_tx_en,
+    output wire                                 sfp0_tx_er,
     output wire                                 sfp0_tx_prbs31_enable,
     input  wire                                 sfp0_rx_clk,
     input  wire                                 sfp0_rx_rst,
-    input  wire [63:0]                          sfp0_rxd,
-    input  wire [7:0]                           sfp0_rxc,
+    input  wire [7:0]                           sfp0_rxd,
+    input  wire                                 sfp0_rx_dv,
+    input  wire                                 sfp0_rx_er,
     output wire                                 sfp0_rx_prbs31_enable,
     input  wire [6:0]                           sfp0_rx_error_count,
     input  wire                                 sfp0_rx_status,
@@ -312,13 +311,15 @@ module fpga_core #
 
     input  wire                                 sfp1_tx_clk,
     input  wire                                 sfp1_tx_rst,
-    output wire [63:0]                          sfp1_txd,
-    output wire [7:0]                           sfp1_txc,
+    output wire [7:0]                           sfp1_txd,
+    output wire                                 sfp1_tx_en,
+    output wire                                 sfp1_tx_er,
     output wire                                 sfp1_tx_prbs31_enable,
     input  wire                                 sfp1_rx_clk,
     input  wire                                 sfp1_rx_rst,
-    input  wire [63:0]                          sfp1_rxd,
-    input  wire [7:0]                           sfp1_rxc,
+    input  wire [7:0]                           sfp1_rxd,
+    input  wire                                 sfp1_rx_dv,
+    input  wire                                 sfp1_rx_er,
     output wire                                 sfp1_rx_prbs31_enable,
     input  wire [6:0]                           sfp1_rx_error_count,
     input  wire                                 sfp1_rx_status,
@@ -584,7 +585,6 @@ wire [PORT_COUNT*PTP_TS_WIDTH-1:0]            eth_tx_ptp_ts_96;
 wire [PORT_COUNT-1:0]                         eth_tx_ptp_ts_step;
 
 wire [PORT_COUNT*AXIS_ETH_DATA_WIDTH-1:0]     axis_eth_tx_tdata;
-wire [PORT_COUNT*AXIS_ETH_KEEP_WIDTH-1:0]     axis_eth_tx_tkeep;
 wire [PORT_COUNT-1:0]                         axis_eth_tx_tvalid;
 wire [PORT_COUNT-1:0]                         axis_eth_tx_tready;
 wire [PORT_COUNT-1:0]                         axis_eth_tx_tlast;
@@ -604,7 +604,6 @@ wire [PORT_COUNT*PTP_TS_WIDTH-1:0]            eth_rx_ptp_ts_96;
 wire [PORT_COUNT-1:0]                         eth_rx_ptp_ts_step;
 
 wire [PORT_COUNT*AXIS_ETH_DATA_WIDTH-1:0]     axis_eth_rx_tdata;
-wire [PORT_COUNT*AXIS_ETH_KEEP_WIDTH-1:0]     axis_eth_rx_tkeep;
 wire [PORT_COUNT-1:0]                         axis_eth_rx_tvalid;
 wire [PORT_COUNT-1:0]                         axis_eth_rx_tready;
 wire [PORT_COUNT-1:0]                         axis_eth_rx_tlast;
@@ -612,17 +611,19 @@ wire [PORT_COUNT*AXIS_ETH_RX_USER_WIDTH-1:0]  axis_eth_rx_tuser;
 
 wire [PORT_COUNT-1:0]                         eth_rx_status;
 
-wire [PORT_COUNT-1:0]                   port_xgmii_tx_clk;
-wire [PORT_COUNT-1:0]                   port_xgmii_tx_rst;
-wire [PORT_COUNT*XGMII_DATA_WIDTH-1:0]  port_xgmii_txd;
-wire [PORT_COUNT*XGMII_CTRL_WIDTH-1:0]  port_xgmii_txc;
+wire [PORT_COUNT-1:0]                  port_gmii_tx_clk;
+wire [PORT_COUNT-1:0]                  port_gmii_tx_rst;
+wire [PORT_COUNT*GMII_DATA_WIDTH-1:0]  port_gmii_txd;
+wire [PORT_COUNT-1:0]                  port_gmii_tx_en;
+wire [PORT_COUNT-1:0]                  port_gmii_tx_er;
 
-wire [PORT_COUNT-1:0]                   port_xgmii_rx_clk;
-wire [PORT_COUNT-1:0]                   port_xgmii_rx_rst;
-wire [PORT_COUNT*XGMII_DATA_WIDTH-1:0]  port_xgmii_rxd;
-wire [PORT_COUNT*XGMII_CTRL_WIDTH-1:0]  port_xgmii_rxc;
+wire [PORT_COUNT-1:0]                  port_gmii_rx_clk;
+wire [PORT_COUNT-1:0]                  port_gmii_rx_rst;
+wire [PORT_COUNT*GMII_DATA_WIDTH-1:0]  port_gmii_rxd;
+wire [PORT_COUNT-1:0]                  port_gmii_rx_dv;
+wire [PORT_COUNT-1:0]                  port_gmii_rx_er;
 
-mqnic_port_map_phy_xgmii #(
+mqnic_port_map_phy_gmii #(
     .PHY_COUNT(2),
     .PORT_MASK(PORT_MASK),
     .PORT_GROUP_SIZE(1),
@@ -632,34 +633,38 @@ mqnic_port_map_phy_xgmii #(
 
     .PORT_COUNT(PORT_COUNT),
 
-    .XGMII_DATA_WIDTH(XGMII_DATA_WIDTH),
-    .XGMII_CTRL_WIDTH(XGMII_CTRL_WIDTH)
+    .GMII_DATA_WIDTH(GMII_DATA_WIDTH),
+    .GMII_CTRL_WIDTH(GMII_CTRL_WIDTH)
 )
-mqnic_port_map_phy_xgmii_inst (
+mqnic_port_map_phy_gmii_inst (
     // towards PHY
-    .phy_xgmii_tx_clk({sfp1_tx_clk, sfp0_tx_clk}),
-    .phy_xgmii_tx_rst({sfp1_tx_rst, sfp0_tx_rst}),
-    .phy_xgmii_txd({sfp1_txd, sfp0_txd}),
-    .phy_xgmii_txc({sfp1_txc, sfp0_txc}),
+    .phy_gmii_tx_clk({sfp1_tx_clk, sfp0_tx_clk}),
+    .phy_gmii_tx_rst({sfp1_tx_rst, sfp0_tx_rst}),
+    .phy_gmii_txd({sfp1_txd, sfp0_txd}),
+    .phy_gmii_tx_en({sfp1_tx_en, sfp0_tx_en}),
+    .phy_gmii_tx_er({sfp1_tx_er, sfp0_tx_er}),
     .phy_tx_status(2'b11),
 
-    .phy_xgmii_rx_clk({sfp1_rx_clk, sfp0_rx_clk}),
-    .phy_xgmii_rx_rst({sfp1_rx_rst, sfp0_rx_rst}),
-    .phy_xgmii_rxd({sfp1_rxd, sfp0_rxd}),
-    .phy_xgmii_rxc({sfp1_rxc, sfp0_rxc}),
+    .phy_gmii_rx_clk({sfp1_rx_clk, sfp0_rx_clk}),
+    .phy_gmii_rx_rst({sfp1_rx_rst, sfp0_rx_rst}),
+    .phy_gmii_rxd({sfp1_rxd, sfp0_rxd}),
+    .phy_gmii_rx_dv({sfp1_rx_dv, sfp0_rx_dv}),
+    .phy_gmii_rx_en({sfp1_rx_er, sfp0_rx_er}),
     .phy_rx_status({sfp1_rx_status, sfp0_rx_status}),
 
     // towards MAC
-    .port_xgmii_tx_clk(port_xgmii_tx_clk),
-    .port_xgmii_tx_rst(port_xgmii_tx_rst),
-    .port_xgmii_txd(port_xgmii_txd),
-    .port_xgmii_txc(port_xgmii_txc),
+    .port_gmii_tx_clk(port_gmii_tx_clk),
+    .port_gmii_tx_rst(port_gmii_tx_rst),
+    .port_gmii_txd(port_gmii_txd),
+    .port_gmii_tx_en(port_gmii_tx_en),
+    .port_gmii_tx_er(port_gmii_tx_er),
     .port_tx_status(eth_tx_status),
 
-    .port_xgmii_rx_clk(port_xgmii_rx_clk),
-    .port_xgmii_rx_rst(port_xgmii_rx_rst),
-    .port_xgmii_rxd(port_xgmii_rxd),
-    .port_xgmii_rxc(port_xgmii_rxc),
+    .port_gmii_rx_clk(port_gmii_rx_clk),
+    .port_gmii_rx_rst(port_gmii_rx_rst),
+    .port_gmii_rxd(port_gmii_rxd),
+    .port_gmii_rx_dv(port_gmii_rx_dv),
+    .port_gmii_rx_en(port_gmii_rx_er),
     .port_rx_status(eth_rx_status)
 );
 
@@ -668,19 +673,16 @@ generate
 
     for (n = 0; n < PORT_COUNT; n = n + 1) begin : mac
 
-        assign eth_tx_clk[n] = port_xgmii_tx_clk[n];
-        assign eth_tx_rst[n] = port_xgmii_tx_rst[n];
-        assign eth_rx_clk[n] = port_xgmii_rx_clk[n];
-        assign eth_rx_rst[n] = port_xgmii_rx_rst[n];
+        assign eth_tx_clk[n] = port_gmii_tx_clk[n];
+        assign eth_tx_rst[n] = port_gmii_tx_rst[n];
+        assign eth_rx_clk[n] = port_gmii_rx_clk[n];
+        assign eth_rx_rst[n] = port_gmii_rx_rst[n];
 
-        eth_mac_10g #(
+        eth_mac_1g #(
             .DATA_WIDTH(AXIS_ETH_DATA_WIDTH),
-            .KEEP_WIDTH(AXIS_ETH_KEEP_WIDTH),
+            .GMII_DATA_WIDTH(GMII_DATA_WIDTH),
             .ENABLE_PADDING(ENABLE_PADDING),
-            .ENABLE_DIC(ENABLE_DIC),
             .MIN_FRAME_LENGTH(MIN_FRAME_LENGTH),
-            .PTP_PERIOD_NS(IF_PTP_PERIOD_NS),
-            .PTP_PERIOD_FNS(IF_PTP_PERIOD_FNS),
             .TX_PTP_TS_ENABLE(PTP_TS_ENABLE),
             .TX_PTP_TS_WIDTH(PTP_TS_WIDTH),
             .TX_PTP_TAG_ENABLE(PTP_TS_ENABLE),
@@ -691,28 +693,28 @@ generate
             .RX_USER_WIDTH(AXIS_ETH_RX_USER_WIDTH)
         )
         eth_mac_inst (
-            .tx_clk(port_xgmii_tx_clk[n]),
-            .tx_rst(port_xgmii_tx_rst[n]),
-            .rx_clk(port_xgmii_rx_clk[n]),
-            .rx_rst(port_xgmii_rx_rst[n]),
+            .tx_clk(port_gmii_tx_clk[n]),
+            .tx_rst(port_gmii_tx_rst[n]),
+            .rx_clk(port_gmii_rx_clk[n]),
+            .rx_rst(port_gmii_rx_rst[n]),
 
             .tx_axis_tdata(axis_eth_tx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            .tx_axis_tkeep(axis_eth_tx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
             .tx_axis_tvalid(axis_eth_tx_tvalid[n +: 1]),
             .tx_axis_tready(axis_eth_tx_tready[n +: 1]),
             .tx_axis_tlast(axis_eth_tx_tlast[n +: 1]),
             .tx_axis_tuser(axis_eth_tx_tuser[n*AXIS_ETH_TX_USER_WIDTH +: AXIS_ETH_TX_USER_WIDTH]),
 
             .rx_axis_tdata(axis_eth_rx_tdata[n*AXIS_ETH_DATA_WIDTH +: AXIS_ETH_DATA_WIDTH]),
-            .rx_axis_tkeep(axis_eth_rx_tkeep[n*AXIS_ETH_KEEP_WIDTH +: AXIS_ETH_KEEP_WIDTH]),
             .rx_axis_tvalid(axis_eth_rx_tvalid[n +: 1]),
             .rx_axis_tlast(axis_eth_rx_tlast[n +: 1]),
             .rx_axis_tuser(axis_eth_rx_tuser[n*AXIS_ETH_RX_USER_WIDTH +: AXIS_ETH_RX_USER_WIDTH]),
 
-            .xgmii_rxd(port_xgmii_rxd[n*XGMII_DATA_WIDTH +: XGMII_DATA_WIDTH]),
-            .xgmii_rxc(port_xgmii_rxc[n*XGMII_CTRL_WIDTH +: XGMII_CTRL_WIDTH]),
-            .xgmii_txd(port_xgmii_txd[n*XGMII_DATA_WIDTH +: XGMII_DATA_WIDTH]),
-            .xgmii_txc(port_xgmii_txc[n*XGMII_CTRL_WIDTH +: XGMII_CTRL_WIDTH]),
+            .gmii_rxd(port_gmii_rxd[n*GMII_DATA_WIDTH +: GMII_DATA_WIDTH]),
+            .gmii_rx_dv(port_gmii_rx_dv),
+            .gmii_rx_er(port_gmii_rx_er),
+            .gmii_txd(port_gmii_txd[n*GMII_DATA_WIDTH +: GMII_DATA_WIDTH]),
+            .gmii_tx_en(port_gmii_tx_en),
+            .gmii_tx_er(port_gmii_tx_er),
 
             .tx_ptp_ts(eth_tx_ptp_ts_96[n*PTP_TS_WIDTH +: PTP_TS_WIDTH]),
             .rx_ptp_ts(eth_rx_ptp_ts_96[n*PTP_TS_WIDTH +: PTP_TS_WIDTH]),
@@ -1028,7 +1030,7 @@ core_inst (
     .tx_ptp_ts_step(eth_tx_ptp_ts_step),
 
     .m_axis_tx_tdata(axis_eth_tx_tdata),
-    .m_axis_tx_tkeep(axis_eth_tx_tkeep),
+    .m_axis_tx_tkeep(1'b1),
     .m_axis_tx_tvalid(axis_eth_tx_tvalid),
     .m_axis_tx_tready(axis_eth_tx_tready),
     .m_axis_tx_tlast(axis_eth_tx_tlast),
@@ -1050,7 +1052,7 @@ core_inst (
     .rx_ptp_ts_step(eth_rx_ptp_ts_step),
 
     .s_axis_rx_tdata(axis_eth_rx_tdata),
-    .s_axis_rx_tkeep(axis_eth_rx_tkeep),
+    .s_axis_rx_tkeep(1'b1),
     .s_axis_rx_tvalid(axis_eth_rx_tvalid),
     .s_axis_rx_tready(axis_eth_rx_tready),
     .s_axis_rx_tlast(axis_eth_rx_tlast),

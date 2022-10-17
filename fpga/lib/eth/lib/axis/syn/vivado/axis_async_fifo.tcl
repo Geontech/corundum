@@ -26,6 +26,8 @@ foreach fifo_inst [get_cells -hier -filter {(ORIG_REF_NAME == axis_async_fifo ||
     # get clock periods
     set read_clk [get_clocks -of_objects [get_pins $fifo_inst/rd_ptr_reg_reg[0]/C]]
     set write_clk [get_clocks -of_objects [get_pins $fifo_inst/wr_ptr_reg_reg[0]/C]]
+    puts "read_clk = $read_clk"
+    puts "write_clk= $write_clk"
 
     set read_clk_period [get_property -min PERIOD $read_clk]
     set write_clk_period [get_property -min PERIOD $write_clk]

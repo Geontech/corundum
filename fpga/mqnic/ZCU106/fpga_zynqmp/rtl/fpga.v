@@ -208,9 +208,9 @@ parameter IF_PTP_PERIOD_FNS = 16'h6666;
 parameter TX_TAG_WIDTH = 16;
 
 // Ethernet interface configuration
-parameter XGMII_DATA_WIDTH = 64;
-parameter XGMII_CTRL_WIDTH = XGMII_DATA_WIDTH/8;
-parameter AXIS_ETH_DATA_WIDTH = XGMII_DATA_WIDTH;
+parameter GMII_DATA_WIDTH = 64;
+parameter GMII_CTRL_WIDTH = GMII_DATA_WIDTH/8;
+parameter AXIS_ETH_DATA_WIDTH = GMII_DATA_WIDTH;
 parameter AXIS_ETH_KEEP_WIDTH = AXIS_ETH_DATA_WIDTH/8;
 parameter AXIS_ETH_SYNC_DATA_WIDTH = AXIS_ETH_DATA_WIDTH;
 parameter AXIS_ETH_TX_USER_WIDTH = TX_TAG_WIDTH + 1;
@@ -532,30 +532,34 @@ zynq_ps zynq_ps_inst (
     .s_axi_dma_wvalid(axi_wvalid)
 );
 
-// XGMII 10G PHY
-wire                         sfp0_tx_clk_int;
-wire                         sfp0_tx_rst_int;
-wire [XGMII_DATA_WIDTH-1:0]  sfp0_txd_int;
-wire [XGMII_CTRL_WIDTH-1:0]  sfp0_txc_int;
-wire                         sfp0_tx_prbs31_enable_int;
-wire                         sfp0_rx_clk_int;
-wire                         sfp0_rx_rst_int;
-wire [XGMII_DATA_WIDTH-1:0]  sfp0_rxd_int;
-wire [XGMII_CTRL_WIDTH-1:0]  sfp0_rxc_int;
-wire                         sfp0_rx_prbs31_enable_int;
-wire [6:0]                   sfp0_rx_error_count_int;
+// GMII 1G PHY
+wire                        sfp0_tx_clk_int;
+wire                        sfp0_tx_rst_int;
+wire [GMII_DATA_WIDTH-1:0]  sfp0_txd_int;
+wire                        sfp0_tx_en_int;
+wire                        sfp0_tx_er_int;
+wire                        sfp0_tx_prbs31_enable_int;
+wire                        sfp0_rx_clk_int;
+wire                        sfp0_rx_rst_int;
+wire [GMII_DATA_WIDTH-1:0]  sfp0_rxd_int;
+wire                        sfp0_rx_dv_int;
+wire                        sfp0_rx_er_int;
+wire                        sfp0_rx_prbs31_enable_int;
+wire [6:0]                  sfp0_rx_error_count_int;
 
-wire                         sfp1_tx_clk_int;
-wire                         sfp1_tx_rst_int;
-wire [XGMII_DATA_WIDTH-1:0]  sfp1_txd_int;
-wire [XGMII_CTRL_WIDTH-1:0]  sfp1_txc_int;
-wire                         sfp1_tx_prbs31_enable_int;
-wire                         sfp1_rx_clk_int;
-wire                         sfp1_rx_rst_int;
-wire [XGMII_DATA_WIDTH-1:0]  sfp1_rxd_int;
-wire [XGMII_CTRL_WIDTH-1:0]  sfp1_rxc_int;
-wire                         sfp1_rx_prbs31_enable_int;
-wire [6:0]                   sfp1_rx_error_count_int;
+wire                        sfp1_tx_clk_int;
+wire                        sfp1_tx_rst_int;
+wire [GMII_DATA_WIDTH-1:0]  sfp1_txd_int;
+wire                        sfp1_tx_en_int;
+wire                        sfp1_tx_er_int;
+wire                        sfp1_tx_prbs31_enable_int;
+wire                        sfp1_rx_clk_int;
+wire                        sfp1_rx_rst_int;
+wire [GMII_DATA_WIDTH-1:0]  sfp1_rxd_int;
+wire                        sfp1_rx_dv_int;
+wire                        sfp1_rx_er_int;
+wire                        sfp1_rx_prbs31_enable_int;
+wire [6:0]                  sfp1_rx_error_count_int;
 
 wire        sfp_drp_clk = clk_125mhz_int;
 wire        sfp_drp_rst = rst_125mhz_int;
@@ -577,6 +581,7 @@ wire sfp_mgt_refclk_0;
 wire sfp_mgt_refclk_0_int;
 wire sfp_mgt_refclk_0_bufg;
 
+// TODO remove and pass refclk_0_n to inner block
 IBUFDS_GTE4 ibufds_gte4_sfp_mgt_refclk_0_inst (
     .I     (sfp_mgt_refclk_0_p),
     .IB    (sfp_mgt_refclk_0_n),
@@ -606,8 +611,8 @@ sfp_sync_reset_inst (
     .out(sfp_rst)
 );
 
-eth_xcvr_phy_10g_gty_quad_wrapper #(
-    .COUNT(2),
+eth_xcvr_phy_1g_gty_quad_wrapper #(
+    .COUNT(1),
     .GT_GTH(1),
     .PRBS31_ENABLE(1)
 )
@@ -646,12 +651,14 @@ sfp_phy_quad_inst (
      */
     .phy_1_tx_clk(sfp0_tx_clk_int),
     .phy_1_tx_rst(sfp0_tx_rst_int),
-    .phy_1_xgmii_txd(sfp0_txd_int),
-    .phy_1_xgmii_txc(sfp0_txc_int),
+    .phy_1_gmii_txd(sfp0_txd_int),
+    .phy_1_gmii_tx_en(sfp0_tx_en_int),
+    .phy_1_gmii_tx_er(sfp0_tx_er_int),
     .phy_1_rx_clk(sfp0_rx_clk_int),
     .phy_1_rx_rst(sfp0_rx_rst_int),
-    .phy_1_xgmii_rxd(sfp0_rxd_int),
-    .phy_1_xgmii_rxc(sfp0_rxc_int),
+    .phy_1_gmii_rxd(sfp0_rxd_int),
+    .phy_1_gmii_rx_dv(sfp0_rx_dv_int),
+    .phy_1_gmii_rx_er(sfp0_rx_er_int),
     .phy_1_tx_bad_block(),
     .phy_1_rx_error_count(sfp0_rx_error_count_int),
     .phy_1_rx_bad_block(),
@@ -664,12 +671,14 @@ sfp_phy_quad_inst (
 
     .phy_2_tx_clk(sfp1_tx_clk_int),
     .phy_2_tx_rst(sfp1_tx_rst_int),
-    .phy_2_xgmii_txd(sfp1_txd_int),
-    .phy_2_xgmii_txc(sfp1_txc_int),
+    .phy_2_gmii_txd(sfp1_txd_int),
+    .phy_2_gmii_tx_en(sfp1_tx_en_int),
+    .phy_2_gmii_tx_er(sfp1_tx_er_int),
     .phy_2_rx_clk(sfp1_rx_clk_int),
     .phy_2_rx_rst(sfp1_rx_rst_int),
-    .phy_2_xgmii_rxd(sfp1_rxd_int),
-    .phy_2_xgmii_rxc(sfp1_rxc_int),
+    .phy_2_gmii_rxd(sfp1_rxd_int),
+    .phy_2_gmii_rx_dv(sfp1_rx_dv_int),
+    .phy_2_gmii_rx_er(sfp1_rx_er_int),
     .phy_2_tx_bad_block(),
     .phy_2_rx_error_count(sfp1_rx_error_count_int),
     .phy_2_rx_bad_block(),
@@ -940,12 +949,14 @@ core_inst (
     .sfp0_tx_clk(sfp0_tx_clk_int),
     .sfp0_tx_rst(sfp0_tx_rst_int),
     .sfp0_txd(sfp0_txd_int),
-    .sfp0_txc(sfp0_txc_int),
+    .sfp0_tx_en(sfp0_tx_en_int),
+    .sfp0_tx_er(sfp0_tx_er_int),
     .sfp0_tx_prbs31_enable(sfp0_tx_prbs31_enable_int),
     .sfp0_rx_clk(sfp0_rx_clk_int),
     .sfp0_rx_rst(sfp0_rx_rst_int),
     .sfp0_rxd(sfp0_rxd_int),
-    .sfp0_rxc(sfp0_rxc_int),
+    .sfp0_rx_dv(sfp0_rx_dv_int),
+    .sfp0_rx_er(sfp0_rx_er_int),
     .sfp0_rx_prbs31_enable(sfp0_rx_prbs31_enable_int),
     .sfp0_rx_error_count(sfp0_rx_error_count_int),
     .sfp0_rx_status(sfp0_rx_status),
@@ -954,12 +965,14 @@ core_inst (
     .sfp1_tx_clk(sfp1_tx_clk_int),
     .sfp1_tx_rst(sfp1_tx_rst_int),
     .sfp1_txd(sfp1_txd_int),
-    .sfp1_txc(sfp1_txc_int),
+    .sfp1_tx_en(sfp1_tx_en_int),
+    .sfp1_tx_er(sfp1_tx_er_int),
     .sfp1_tx_prbs31_enable(sfp1_tx_prbs31_enable_int),
     .sfp1_rx_clk(sfp1_rx_clk_int),
     .sfp1_rx_rst(sfp1_rx_rst_int),
     .sfp1_rxd(sfp1_rxd_int),
-    .sfp1_rxc(sfp1_rxc_int),
+    .sfp1_rx_dv(sfp1_rx_dv_int),
+    .sfp1_rx_er(sfp1_rx_er_int),
     .sfp1_rx_prbs31_enable(sfp1_rx_prbs31_enable_int),
     .sfp1_rx_error_count(sfp1_rx_error_count_int),
     .sfp1_rx_status(sfp1_rx_status),
